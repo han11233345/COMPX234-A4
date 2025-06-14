@@ -7,7 +7,20 @@ def main():
     client.send(f"DOWNLOAD {filename}".encode())
 
     response = client.recv(4096).decode()
-    print(response)
+    if response.startswith("OK"):
+        _, file_size = response.split()
+        file_size = int(file_size)
+
+        with open(f"downloaded_{filename}", "wb") as f:
+            received_size = 0
+            while received_size < file_size:
+                data = client.recv(1024)
+                f.write(data)
+                received_size += len(data)
+
+        print(f"Downloaded {filename}")
+    else:
+        print(response)
 
     if __name__ == "__main__":
         main()
