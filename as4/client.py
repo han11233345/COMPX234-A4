@@ -11,11 +11,7 @@ def send_and_receive(client, message, timeout=2):
     except socket.timeout:
         return None
 
-def main():
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect(("127.0.0.1", 9999))
-
-    filename = "example.txt"
+def download_file(client, filename):
     response = None
     while response is None:
         response = send_and_receive(client, f"DOWNLOAD {filename}")
@@ -27,13 +23,31 @@ def main():
         with open(f"downloaded_{filename}", "wb") as f:
             received_size = 0
             while received_size < file_size:
-                data = client.recv(1024)
-                f.write(data)
-                received_size += len(data)
+                try:
+                    client.settimeout(2)
+                    data = client.recv(1024)
+                    if not data:
+                        break
+                    f.write(data)
+                    received_size += len(data)
+                except socket.timeout:
+                    print(f"Timeout while downloading {filename}, retrying...")
+                    client.send(f"RESUME {filename} {received_size}".encode())
+                    continue
 
         print(f"Downloaded {filename}")
     else:
         print(response)
+
+
+def main():
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect(("127.0.0.1", 9999))
+
+
+    file_list = ["example1.txt", "example2.txt"]
+    for filename in file_list:
+        download_file(client, filename)
 
 
 if __name__ == "__main__":
