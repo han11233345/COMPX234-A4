@@ -1,10 +1,20 @@
 import socket
 import threading
+import os
+
 
 def handle_client(client_socket):
-    request = client_socket.recv(1024)
-    print(f"Received: {request.decode()}")
-    client_socket.send("ACK".encode())
+    request = client_socket.recv(1024).decode()
+    print(f"Received: {request}")
+
+    if request.startswith("DOWNLOAD"):
+        _, filename = request.split()
+        if os.path.isfile(filename):
+            file_size = os.path.getsize(filename)
+            client_socket.send(f"OK {file_size}".encode())
+        else:
+            client_socket.send("ERROR File not found".encode())
+
     client_socket.close()
 
     def main():
